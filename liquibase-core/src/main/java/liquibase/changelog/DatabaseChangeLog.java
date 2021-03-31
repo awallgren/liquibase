@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Encapsulates the information stored in the change log XML file.
@@ -32,6 +33,12 @@ public class DatabaseChangeLog implements Comparable<DatabaseChangeLog>, Conditi
     private static final ThreadLocal<DatabaseChangeLog> ROOT_CHANGE_LOG = new ThreadLocal<>();
     private static final ThreadLocal<DatabaseChangeLog> PARENT_CHANGE_LOG = new ThreadLocal<>();
     private static final Logger LOG = Scope.getCurrentScope().getLog(DatabaseChangeLog.class);
+
+    private static final Pattern BACKSLASHES = Pattern.compile("\\\\");
+    private static final Pattern DRIVE_LETTER = Pattern.compile("^[a-zA-Z]:");
+    private static final Pattern LEADING_CLASSPATH_COLON = Pattern.compile("^classpath:");
+    private static final Pattern LEADING_SLASH = Pattern.compile("^/");
+    private static final Pattern SLASH = Pattern.compile("//+");
 
     private PreconditionContainer preconditionContainer = new PreconditionContainer();
     private String physicalFilePath;
@@ -642,13 +649,17 @@ public class DatabaseChangeLog implements Comparable<DatabaseChangeLog>, Conditi
         if (filePath == null) {
             return null;
         }
-        return filePath.replaceFirst("^classpath:", "")
-                .replaceAll("\\\\", "/")
-                .replaceAll("//+", "/")
-                .replaceFirst("^[a-zA-Z]:", "")
-                .replaceFirst("^/", "")
-                ;
 
+        return LEADING_SLASH.matcher(
+            DRIVE_LETTER.matcher(
+                SLASH.matcher(
+                    BACKSLASHES.matcher(
+                        LEADING_CLASSPATH_COLON.matcher(filePath)
+                            .replaceFirst(""))
+                        .replaceAll("/"))
+                    .replaceAll("/"))
+                .replaceFirst(""))
+            .replaceFirst("");
     }
 
     public void clearCheckSums() {
